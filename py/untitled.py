@@ -34,6 +34,6 @@ expressions_dict = {}
 for expr in different_expr:
     expressions_dict[expr] = def_coeff[np.where(labels_expr == expr)]
 
-
+print(np.shape(expressions_dict["happy"]))
 
 
