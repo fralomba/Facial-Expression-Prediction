@@ -15,7 +15,7 @@ index = 1;
 % Select an arbitrary coefficients vector.
 % The coefficients are pre-computed by fitting the average model on a 2D
 % image
-def_v = def_coeff(:,index);
+def_v = def_coeff(:,index) + mean_happy';
 
 % Deform the average model ( or any aritrary model ) by summing to the
 % average model a linear combination of the dictionary elements

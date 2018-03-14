@@ -64,7 +64,6 @@ for expr in different_expr:
     median_dict[expr] = np.median(expressions_dict[expr], axis=0)
 
     #Computing modes
-
     n_clusters_ = 0
     quantile = 0.3
     while n_clusters_ != 1 :
@@ -82,10 +81,18 @@ for expr in different_expr:
 
     mode_dict[expr] = cluster_centers[0]
 
-
-sp.savemat('salva.mat',{'mean':mean_dict['happy']})
+#save matlab matrix for each expression
+sp.savemat('../dataset/mean_coefficients/happy.mat',{'mean_happy':mean_dict['happy']})
+sp.savemat('../dataset/mean_coefficients/disgust.mat',{'mean_disgust':mean_dict['disgust']})
+sp.savemat('../dataset/mean_coefficients/surprise.mat',{'mean_surprise':mean_dict['surprise']})
+sp.savemat('../dataset/mean_coefficients/angry.mat',{'mean_angry':mean_dict['angry']})
+sp.savemat('../dataset/mean_coefficients/sadness.mat',{'mean_sadness':mean_dict['sadness']})
+sp.savemat('../dataset/mean_coefficients/fear.mat',{'mean_fear':mean_dict['fear']})
+sp.savemat('../dataset/mean_coefficients/contempt.mat',{'mean_contempt':mean_dict['contempt']})
 
 '''
+Secondo me questo non ci serve più!
+
 #Computing numbers of mode
 for expr in expressions_dict:
 
@@ -127,26 +134,6 @@ for expr in expressions_dict:
 '''
 
 '''
-for expr in different_expr:
-    n_clusters_ = 0
-    quantile = 0.3
-    while n_clusters_ != 1 :
-        delta_happy = expressions_dict[expr]
-
-        bandwidth = estimate_bandwidth(delta_happy, quantile=quantile)
-        ms = MeanShift(bandwidth=bandwidth)
-        ms.fit(delta_happy)
-        labels = ms.labels_
-        cluster_centers = ms.cluster_centers_
-
-        labels_unique = np.unique(labels)
-        n_clusters_ = len(labels_unique)
-        quantile += 0.1
-
-    print(cluster_centers)
-    
-
-
 from sklearn import linear_model
 
 input = expressions_dict['neutral']
