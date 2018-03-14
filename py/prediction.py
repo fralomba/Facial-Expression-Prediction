@@ -1,6 +1,8 @@
 import h5py
 import numpy as np
+import scipy.io as sp
 from sklearn.cluster import MeanShift, estimate_bandwidth
+
 from sklearn.metrics import mean_squared_error
 
 #Matrix name: def_coeff, labels_expr, labels_id
@@ -33,6 +35,18 @@ different_expr = np.sort(np.unique(labels_expr))
 
 #Computing expressions matrix
 expressions_dict = {}
+for i in range(1, def_coeff.shape[0], 2):
+
+    trans = def_coeff[i,:] - def_coeff[i-1,:]
+    trans = np.matrix(trans)
+    label = labels_expr[i]
+    if label in expressions_dict:
+        expressions_dict[label] = np.append(expressions_dict[label], trans, axis=0)
+    else:
+        expressions_dict[label] = trans
+
+
+#Computing means, medians and modes
 mean_dict = {}
 median_dict = {}
 mode_dict = {}
@@ -50,7 +64,7 @@ for expr in different_expr:
     median_dict[expr] = np.median(expressions_dict[expr], axis=0)
 
     #Computing modes
-    '''
+
     n_clusters_ = 0
     quantile = 0.3
     while n_clusters_ != 1 :
@@ -67,8 +81,11 @@ for expr in different_expr:
         quantile += 0.1
 
     mode_dict[expr] = cluster_centers[0]
-    '''
 
+
+sp.savemat('salva.mat',{'mean':mean_dict['happy']})
+
+'''
 #Computing numbers of mode
 for expr in expressions_dict:
 
@@ -86,7 +103,7 @@ for expr in expressions_dict:
         labels_unique = np.unique(labels)
         n_clusters_ = len(labels_unique)
         quantile += 0.1
-
+'''
 '''
 Calcolo dell'errore quadratico medio medio, la media viene l'ottimo, ma il Pala ha detto che non ha senso
 errors_dict = {}
