@@ -1,6 +1,7 @@
 %% Example code to deform the average 3D model
 %  by means of a dictionary of deformation components and a set of deformation coefficients
 %  Load data
+
 if ~exist('def_coeff','var')
     load data/avgModel.mat
     load data/processed_ck.mat
@@ -9,13 +10,22 @@ if ~exist('def_coeff','var')
     addpath(genpath('toolbox_graph/'))
 end
 
+[status, commandOut] = system('python ../../py/prediction.py')
+if status ~= 0
+    disp("Wrong folder! Open deform_code folder")
+    return
+end
+ 
+
 % Params
-index = 1;
+index = 21;
 
 % Select an arbitrary coefficients vector.
 % The coefficients are pre-computed by fitting the average model on a 2D
 % image
-def_v = def_coeff(:,index) + mean_happy';
+figure;
+def_v = def_coeff(:,index) + 2*mean_contempt';
+
 
 % Deform the average model ( or any aritrary model ) by summing to the
 % average model a linear combination of the dictionary elements

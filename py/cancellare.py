@@ -1,48 +1,70 @@
+'''
+Secondo me questo non ci serve più!
 
-import numpy as np
-from sklearn.cluster import MeanShift, estimate_bandwidth
-from sklearn.datasets.samples_generator import make_blobs
+#Computing numbers of mode
+for expr in expressions_dict:
 
-# #############################################################################
-# Generate sample data
-centers = [[0.7, 0.2], [0.7, 1], [-1, -1]]
-X, _ = make_blobs(n_samples=10000, centers=centers, cluster_std=0.6)
+    quantile = 0.3
+    n_clusters_ = 0
+    while n_clusters_ != 1:
+        delta = expressions_dict[expr]
 
-# #############################################################################
-# Compute clustering with MeanShift
+        bandwidth = estimate_bandwidth(delta, quantile=quantile)
+        ms = MeanShift(bandwidth=bandwidth)
+        ms.fit(delta)
+        labels = ms.labels_
+        cluster_centers = ms.cluster_centers_
 
-# The following bandwidth can be automatically detected using
+        labels_unique = np.unique(labels)
+        n_clusters_ = len(labels_unique)
+        quantile += 0.1
+'''
+'''
+Calcolo dell'errore quadratico medio medio, la media viene l'ottimo, ma il Pala ha detto che non ha senso
+errors_dict = {}
+for expr in expressions_dict:
+
+    matrix_errors = np.zeros((expressions_dict[expr].shape[0], 3))
+
+    if expr == 'neutral':
+        continue
+
+    for i in range(expressions_dict[expr].shape[0]):
+        matrix_errors[i][0] = (mean_squared_error(expressions_dict[expr][i], mean_dict[expr]))
+        matrix_errors[i][1] = (mean_squared_error(expressions_dict[expr][i], median_dict[expr]))
+        matrix_errors[i][2] = (mean_squared_error(expressions_dict[expr][i], mode_dict[expr]))
+
+    errors_dict[expr] = matrix_errors.mean(0)
+
+    print('Errors ' + expr)
+    print('     mean = ', errors_dict[expr][0], ', median = ', errors_dict[expr][1], ', mode = ', errors_dict[expr][2])
+    print(' ')
+'''
+
+'''
+from sklearn import linear_model
+
+input = expressions_dict['neutral']
+output = expressions_dict['happy']
+
+input = input[0:69]
+
+regr = linear_model.LinearRegression()
+regr.fit(input, output)
+
+pred = regr.predict(input[0].reshape(1,-1))
+print(pred)
+print(output[0])
 
 
-n_clusters_ = 0
-quantile = 0.3
 
-while n_clusters_ != 1 :
-    bandwidth = estimate_bandwidth(X, quantile=quantile)
-    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-    ms.fit(X)
-    labels = ms.labels_
-    cluster_centers = ms.cluster_centers_
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
-    quantile += 0.1
+from sklearn.svm import SVC
+output = expressions_dict['happy']
+input = expressions_dict['neutral']
 
+input = input[0:69]
 
+clf = SVC()
+clf.fit(input, output)
 
-# #############################################################################
-# Plot result
-import matplotlib.pyplot as plt
-from itertools import cycle
-
-plt.figure(1)
-plt.clf()
-
-colors = cycle('bgrcmykbgrcmykbgrcmykbgrcmyk')
-for k, col in zip(range(n_clusters_), colors):
-    my_members = labels == k
-    cluster_center = cluster_centers[k]
-    plt.plot(X[my_members, 0], X[my_members, 1], col + '.')
-    plt.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,
-             markeredgecolor='k', markersize=14)
-plt.title('Estimated number of clusters: %d' % n_clusters_)
-plt.show()
+'''
