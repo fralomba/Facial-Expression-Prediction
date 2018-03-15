@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import sys
 import scipy.io as sp
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
@@ -9,7 +10,7 @@ from sklearn.metrics import mean_squared_error
 
 def prediction(expr = 'happy', technique = 'mean'):
     #neutral, disgust, surprise, angry, sadness, fear, contempt, happy
-    mat = h5py.File('../dataset/processed_ck.mat')
+    mat = h5py.File('../processed_ck.mat')
 
     #Transformation Matrix (neutral, expression, neutral, expression)
     def_coeff = np.array(mat["def_coeff"])
@@ -22,7 +23,7 @@ def prediction(expr = 'happy', technique = 'mean'):
 
     #Loading expression labels
     labels_expr = []
-    with h5py.File('../dataset/processed_ck.mat') as f:
+    with h5py.File('../processed_ck.mat') as f:
         column = f['labels_expr'][0]
         for row_number in range(len(column)):
             labels_expr.append(''.join(map(chr, f[column[row_number]][:])))
@@ -80,5 +81,7 @@ def prediction(expr = 'happy', technique = 'mean'):
         return np.mean(expressions_dict[expr], axis=0)
 
 
-
-
+if __name__ == '__main__':
+    expr = sys.argv[1]
+    technique = sys.argv[2]
+    sys.stdout.write(str(prediction(expr, technique)))
