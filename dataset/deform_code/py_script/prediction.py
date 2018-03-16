@@ -1,7 +1,6 @@
 import h5py
 import numpy as np
 import sys
-import scipy.io as sp
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
 from sklearn.metrics import mean_squared_error

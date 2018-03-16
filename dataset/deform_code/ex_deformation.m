@@ -1,3 +1,6 @@
+%% Example code to deform the average 3D model
+%  by means of a dictionary of deformation components and a set of deformation coefficients
+%  Load data
 if ~exist('def_coeff','var')
     load data/avgModel.mat
     load data/processed_ck.mat
@@ -6,22 +9,23 @@ if ~exist('def_coeff','var')
     addpath(genpath('toolbox_graph/'))
 end
 
-idx = find(contains(labels_expr,'neutral'));
-def_neutral = def_coeff(:,idx);
+% Params
+index = 12;
 
-n_examples = 6;
-expr = "sadness";
-technique = "mode";
+% Select an arbitrary coefficients vector.
+% The coefficients are pre-computed by fitting the average model on a 2D
+% image
+def_v = def_coeff(:,index);
 
-indexes = randi(300, n_examples,1);
+% Deform the average model ( or any aritrary model ) by summing to the
+% average model a linear combination of the dictionary elements
+defShape = deform_3D_shape_fast(avgModel',Components, def_v);
 
-for i=1:n_examples
-    figure;
-    def_v = def_neutral(:,indexes(i)) + prediction(expr, technique);
-
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v);
-    defNeutral = deform_3D_shape_fast(avgModel',Components, def_neutral(:,indexes(i)));
-
-    visualize(defNeutral, defShape); 
-end
+% Visualization
+subplot(1,2,1)
+plot_mesh(avgModel,compute_delaunay(avgModel));
+title('Average Model')
+subplot(1,2,2)
+plot_mesh(defShape,compute_delaunay(defShape));
+title('Deformed Model')
 
