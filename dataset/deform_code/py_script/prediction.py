@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 import sys
 from sklearn.cluster import MeanShift, estimate_bandwidth
+from sklearn import linear_model
 
-from sklearn.metrics import mean_squared_error
 
 #Matrix name: def_coeff, labels_expr, labels_id
 
@@ -44,12 +44,6 @@ def prediction(expr = 'happy', technique = 'mean'):
             expressions_dict[label] = np.append(expressions_dict[label], trans, axis=0)
         else:
             expressions_dict[label] = trans
-
-
-    #Computing means, medians and modes
-    mean_dict = {}
-    median_dict = {}
-    mode_dict = {}
 
     expressions_dict[expr] = def_coeff[np.where(labels_expr == expr)]
 
