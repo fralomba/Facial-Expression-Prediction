@@ -24,7 +24,7 @@ labels_expr = np.asarray(labels_expr)
 def_neutral = def_coeff[labels_expr == 'neutral']
 
 n_examples = 5
-expr = "happy"
+expr = "surprise"
 technique = "mode"
 
 pred_vector = prediction.prediction(expr, technique)

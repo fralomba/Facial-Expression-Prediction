@@ -25,6 +25,7 @@ defShape = deform_3D_shape_fast(avgModel',Components, def_v);
 subplot(1,2,1)
 plot_mesh(avgModel,compute_delaunay(avgModel));
 title('Average Model')
+
 subplot(1,2,2)
 plot_mesh(defShape,compute_delaunay(defShape));
 title('Deformed Model')
