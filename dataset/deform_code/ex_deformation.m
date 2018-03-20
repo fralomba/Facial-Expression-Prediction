@@ -10,7 +10,7 @@ if ~exist('def_coeff','var')
 end
 
 % Params
-index = 12;
+index = 57;
 
 % Select an arbitrary coefficients vector.
 % The coefficients are pre-computed by fitting the average model on a 2D
@@ -22,6 +22,7 @@ def_v = def_coeff(:,index);
 defShape = deform_3D_shape_fast(avgModel',Components, def_v);
 
 % Visualization
+figure;
 subplot(1,2,1)
 plot_mesh(avgModel,compute_delaunay(avgModel));
 title('Average Model')

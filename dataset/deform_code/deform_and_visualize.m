@@ -1,6 +1,6 @@
-function done = deform_and_visualize(def_neutral,def_v)
+function done = deform_and_visualize(def_neutral,def_v, expr, tec, filename)
     
-    figure;
+    figure1 = figure;
     
     if ~exist('def_coeff','var')
         load data/avgModel.mat
@@ -15,10 +15,12 @@ function done = deform_and_visualize(def_neutral,def_v)
 
     subplot(1,2,1)
     plot_mesh(defNeutral,compute_delaunay(defNeutral));
-    title('Neutral Model')
+    title('neutral model')
     subplot(1,2,2)
     plot_mesh(defShape,compute_delaunay(defShape));
-    title('Expression Model')
+    title(strcat(expr, " model with ", tec))
+
+    saveas(figure1,filename);
 
     done = 'done';
 end
