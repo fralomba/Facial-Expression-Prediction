@@ -5,7 +5,7 @@ from sklearn.cluster import MeanShift, estimate_bandwidth
 
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 
 def load_data():
     # neutral, disgust, surprise, angry, sadness, fear, contempt, happy
@@ -26,21 +26,32 @@ def load_data():
 
     # Computing expressions matrix
     expressions_dict = {}
-    for i in range(1, def_coeff.shape[0], 2):
+    dataset_dict = {}
 
-        trans = def_coeff[i, :] - def_coeff[i - 1, :]
-        trans = np.matrix(trans)
+    for i in range(1, def_coeff.shape[0], 2):
+        #Computing difference for each expression
+        neutral = def_coeff[i - 1, :]
+        delta = def_coeff[i, :] - neutral
+        delta = np.matrix(delta)
+        neutral = np.matrix(neutral)
         label = labels_expr[i]
         if label in expressions_dict:
-            expressions_dict[label] = np.append(expressions_dict[label], trans, axis=0)
+            expressions_dict[label] = np.append(expressions_dict[label], delta, axis=0)
         else:
-            expressions_dict[label] = trans
+            expressions_dict[label] = delta
 
-    return expressions_dict
+        #Computing dataset for learning for each expression
+        if label in dataset_dict:
+            dataset_dict[label]["input"] = np.append(dataset_dict[label]["input"], neutral, axis=0)
+            dataset_dict[label]["output"] = np.append(dataset_dict[label]["output"], delta, axis=0)
+        else:
+            dataset_dict[label] = {"input" : neutral, "output" : delta}
 
-def prediction(expr = 'happy', technique = 'mean', bandwidth=None):
+    return expressions_dict, dataset_dict
 
-    expressions_dict = load_data()
+def m_prediction(expr = 'happy', technique = 'mean', bandwidth=None):
+
+    expressions_dict, dataset_dict = load_data()
 
     #expressions_dict[expr] = def_coeff[np.where(labels_expr == expr)]
 
@@ -81,6 +92,58 @@ def prediction(expr = 'happy', technique = 'mean', bandwidth=None):
     else:
         # Computing means
         return np.mean(expressions_dict[expr], axis=0)
+
+def regressor(expr, tec):
+    expressions_dict, dataset_dict = load_data()
+
+    X = dataset_dict[expr]["input"]
+    y = dataset_dict[expr]["output"]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+
+    if tec == "linear":
+
+        regr = LinearRegression()
+        #regr.fit(X_train, y_train)
+
+        cv = 4
+
+        cv_scores = cross_val_score(regr, X_train, y_train, cv=cv)
+
+        index_min = np.argmin(cv_scores)
+
+        best_X_train = []
+        best_y_train = []
+        best_y_train = np.matrix(best_y_train)
+        best_X_train = np.matrix(best_X_train)
+
+        size = X_train.shape[0]
+
+        for i in range(cv):
+
+            if i != index_min:
+
+                if best_X_train.shape[1] == 0:
+                    best_X_train = X_train[int(size / cv * i): int(size / cv * i + size / cv)]
+                    best_y_train = y_train[int(size / cv * i): int(size / cv * i + size / cv)]
+
+                else:
+                    best_X_train = np.concatenate((best_X_train , X_train[ int(size/cv*i) : int(size/cv*i + size/cv)]))
+                    best_y_train = np.concatenate((best_y_train, y_train[int(size / cv * i): int(size / cv * i + size / cv)]))
+
+        regr.fit(best_X_train, best_y_train)
+
+        # Predict on the test data: y_pred
+        y_pred = regr.predict(X_test)
+
+        # Compute and print R^2 and RMSE
+        rmse = np.sqrt(mean_squared_error(y_pred, y_test))
+        print("Root Mean Squared Error: {}".format(rmse))
+        #print(y_pred[0])
+        #print(y_train[0])
+
+    return regr
+
 
 '''
 def linearRegressor():

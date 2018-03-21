@@ -23,12 +23,36 @@ labels_expr = np.asarray(labels_expr)
 def_neutral = def_coeff[labels_expr == 'neutral']
 
 #disgust, surprise, angry, sadness, fear, contempt, happy
-expr = "disgust"
+expr = "happy"
 technique = "mode"
 n_examples = 5
 alpha = 1
 
-pred_vector = prediction.prediction(expr, technique)
+regr = prediction.regressor(expr, "linear")
+
+pred_vector = prediction.m_prediction(expr, technique)
+
+indexes = np.random.randint(0, high = len(def_neutral), size = n_examples+1)
+
+for i in range(0,n_examples):
+
+    def_neutral_v = def_neutral[indexes[i]]
+
+    def_v = def_neutral_v + regr.predict(def_neutral_v.reshape(1, -1))*alpha
+
+    eng.deform_and_visualize(matlab.double(def_neutral_v.tolist()), matlab.double(def_v.tolist()),
+                             expr, "linear regressor", "results/" + expr + "_" + "linear regressor" + "_" + str(i) + ".jpg")
+
+    def_v = def_neutral_v + pred_vector * alpha
+
+    eng.deform_and_visualize(matlab.double(def_neutral_v.tolist()), matlab.double(def_v.tolist()),
+                             expr, technique, "results/" + expr + "_" + technique + "_" + str(i) + ".jpg")
+
+
+input('Press enter to continue...')
+
+'''
+pred_vector = prediction.m_prediction(expr, technique)
 
 indexes = np.random.randint(0, high = len(def_neutral), size = n_examples+1)
 
@@ -42,17 +66,4 @@ for i in range(0,n_examples):
                              expr, technique, "results/" + expr + "_" + technique + "_" + str(i) + ".jpg")
 
 input('Press enter to continue...')
-
-techniques = ["mean", "median", "mode"]
-
-for tec in techniques:
-    pred_vector = prediction.prediction(expr, tec)
-
-    def_neutral_v = def_neutral[indexes[0]]
-
-    def_v = def_neutral_v + pred_vector
-
-    eng.deform_and_visualize(matlab.double(def_neutral_v.tolist()), matlab.double(def_v.tolist()),
-                             expr, tec, "results/" + expr + "_" + tec + ".jpg")
-
-input('Press enter to continue...')
+'''
