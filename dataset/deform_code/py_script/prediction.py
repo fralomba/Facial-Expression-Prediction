@@ -1,11 +1,13 @@
 import h5py
 import numpy as np
-import sys
 from sklearn.cluster import MeanShift, estimate_bandwidth
-
+from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn import metrics
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.svm import SVR
+from sklearn.multioutput import MultiOutputRegressor
 
 def load_data():
     # neutral, disgust, surprise, angry, sadness, fear, contempt, happy
@@ -24,36 +26,38 @@ def load_data():
     # Expression labels
     labels_expr = np.asarray(labels_expr)
 
+    different_expr = np.sort(np.unique(labels_expr))
+
     # Computing expressions matrix
     expressions_dict = {}
     dataset_dict = {}
 
+
     for i in range(1, def_coeff.shape[0], 2):
         #Computing difference for each expression
         neutral = def_coeff[i - 1, :]
-        delta = def_coeff[i, :] - neutral
-        delta = np.matrix(delta)
+        expr = def_coeff[i, :]
+        expr = np.matrix(expr)
         neutral = np.matrix(neutral)
         label = labels_expr[i]
         if label in expressions_dict:
-            expressions_dict[label] = np.append(expressions_dict[label], delta, axis=0)
+            expressions_dict[label] = np.append(expressions_dict[label], expr, axis=0)
         else:
-            expressions_dict[label] = delta
+            expressions_dict[label] = expr
 
         #Computing dataset for learning for each expression
         if label in dataset_dict:
             dataset_dict[label]["input"] = np.append(dataset_dict[label]["input"], neutral, axis=0)
-            dataset_dict[label]["output"] = np.append(dataset_dict[label]["output"], delta, axis=0)
+            dataset_dict[label]["output"] = np.append(dataset_dict[label]["output"], expr, axis=0)
         else:
-            dataset_dict[label] = {"input" : neutral, "output" : delta}
+            dataset_dict[label] = {"input" : neutral, "output" : expr}
+
 
     return expressions_dict, dataset_dict
 
 def m_prediction(expr = 'happy', technique = 'mean', bandwidth=None):
 
     expressions_dict, dataset_dict = load_data()
-
-    #expressions_dict[expr] = def_coeff[np.where(labels_expr == expr)]
 
     if technique == 'median':
         # Computing medians
@@ -70,6 +74,7 @@ def m_prediction(expr = 'happy', technique = 'mean', bandwidth=None):
 
             labels_unique = np.unique(labels)
             n_clusters_ = len(labels_unique)
+            print("In radius ", bandwidth, " we get ", n_clusters_, " centroids")
             return cluster_centers
 
         # Computing modes
@@ -93,7 +98,7 @@ def m_prediction(expr = 'happy', technique = 'mean', bandwidth=None):
         # Computing means
         return np.mean(expressions_dict[expr], axis=0)
 
-def regressor(expr, tec):
+def regressor(expr, tec, kernel = "rbf"):
     expressions_dict, dataset_dict = load_data()
 
     X = dataset_dict[expr]["input"]
@@ -104,43 +109,53 @@ def regressor(expr, tec):
     if tec == "linear":
 
         regr = LinearRegression()
-        #regr.fit(X_train, y_train)
 
-        cv = 4
+        print(cross_val_score(regr, X_train, y_train, cv=4))
 
-        cv_scores = cross_val_score(regr, X_train, y_train, cv=cv)
+        regr.fit(X_train, y_train)
 
-        index_min = np.argmin(cv_scores)
+    elif tec == "svr":
 
-        best_X_train = []
-        best_y_train = []
-        best_y_train = np.matrix(best_y_train)
-        best_X_train = np.matrix(best_X_train)
+        c_array = np.geomspace(1.0, 1000.0, 100)
+        '''
+        for c in c_array:
+            regr = MultiOutputRegressor(SVR(kernel=kernel, C=c))
+            scores = cross_val_score(regr, X_train, y_train, cv=4)
+            print("For C = ", c, " min: ", min(scores), " max: ", max(scores), " mean: ", np.mean(scores),
+                  " variance: ", np.var(scores))
+                  '''
 
-        size = X_train.shape[0]
+        kfold = KFold(n_splits=6, random_state=21, shuffle=True)
+        for c in c_array:
+            regr = MultiOutputRegressor(SVR(kernel=kernel, C=c))
+            scores = []
+            scores = np.array(scores)
 
-        for i in range(cv):
+            for train_index, test_index in kfold.split(X_train):
+                kf_x_train, kf_x_test = X_train[train_index], X_train[test_index]
+                kf_y_train, kf_y_test = y_train[train_index], y_train[test_index]
+                regr.fit(kf_x_train, kf_y_train)
+                #regr.predict(kf_x_test)
+                scores = np.append(scores, regr.score(kf_x_test, kf_y_test))
 
-            if i != index_min:
+            print("For C = ", c, " min: ", min(scores), " max: ", max(scores), " mean: ", np.mean(scores),
+                  " variance: ", np.var(scores))
 
-                if best_X_train.shape[1] == 0:
-                    best_X_train = X_train[int(size / cv * i): int(size / cv * i + size / cv)]
-                    best_y_train = y_train[int(size / cv * i): int(size / cv * i + size / cv)]
 
-                else:
-                    best_X_train = np.concatenate((best_X_train , X_train[ int(size/cv*i) : int(size/cv*i + size/cv)]))
-                    best_y_train = np.concatenate((best_y_train, y_train[int(size / cv * i): int(size / cv * i + size / cv)]))
 
-        regr.fit(best_X_train, best_y_train)
 
-        # Predict on the test data: y_pred
-        y_pred = regr.predict(X_test)
 
-        # Compute and print R^2 and RMSE
-        rmse = np.sqrt(mean_squared_error(y_pred, y_test))
-        print("Root Mean Squared Error: {}".format(rmse))
-        #print(y_pred[0])
-        #print(y_train[0])
+        regr.fit(X_train, y_train)
+
+    # Predict on the test data: y_pred
+    y_pred = regr.predict(X_test)
+
+    # Compute and print R^2 and RMSE
+    rmse = np.sqrt(mean_squared_error(y_pred, y_test))
+    print("R^2: {}".format(regr.score(X_test, y_test)))
+    print("Root Mean Squared Error: {}".format(rmse))
+    # print(y_pred[0])
+    # print(y_train[0])
 
     return regr
 
@@ -226,6 +241,10 @@ if __name__ == '__main__':
 
     #Mean Shift Study
 
+    print(np.logspace(0.0, 100.0, 100) / 10)
+
+    input()
+
     mat = h5py.File('../data/processed_ck.mat')
 
     # Transformation Matrix (neutral, expression, neutral, expression)
@@ -262,42 +281,44 @@ if __name__ == '__main__':
         else:
             expressions_dict[label] = trans
 
+    radius = []
+    radius = np.array(radius)
+
+
+
     for expr in different_expr:
+        expressions_dict[expr] = def_coeff[np.where(labels_expr == expr)]
         # Computing modes
-        n_clusters_ = 0
-        quantile = 0.3
+        n_clusters_ = 1000
+        quantile = 0.2
         if expr == 'neutral':
             continue
         print("For expression ", expr)
 
-        while quantile < 1:
+        delta = expressions_dict[expr]
 
-            delta = expressions_dict[expr]
+        bandwidth = estimate_bandwidth(delta, quantile=quantile)
+        ms = MeanShift(bandwidth=bandwidth)
+        ms.fit(delta)
+        labels = ms.labels_
+        cluster_centers = ms.cluster_centers_
 
-            bandwidth = estimate_bandwidth(delta, quantile=quantile)
-            ms = MeanShift(bandwidth=bandwidth)
-            ms.fit(delta)
-            labels = ms.labels_
-            cluster_centers = ms.cluster_centers_
+        labels_unique = np.unique(labels)
+        n_clusters_ = len(labels_unique)
+        quantile += 0.1
+        print("In radius ", bandwidth, " we get ", n_clusters_, " centroids")
 
-            labels_unique = np.unique(labels)
-            n_clusters_ = len(labels_unique)
-            quantile += 0.1
-            print(bandwidth, " = ", n_clusters_)
+        if(len(cluster_centers) > 1):
 
+            for index, cluster_center in enumerate(cluster_centers):
 
+                print("For cluster with index ", index)
 
-    from sklearn.svm import SVR
-    from sklearn.multioutput import MultiOutputRegressor
+                cluster_distance = euclidean_distances(cluster_center.reshape(1,-1), cluster_centers)
+                print("Distance between centroid and other centroids: ", cluster_distance[0])
 
-    clf = MultiOutputRegressor(SVR(C=1.0, epsilon=0.2))
+                distances = euclidean_distances(expressions_dict[expr], cluster_center.reshape(1, -1))
+                num_vector = len(distances[np.where(distances <= bandwidth )])
+                print("Number of vectors within the radius centered in the first centroid: ", num_vector/len(delta) * 100, "%")
 
-    y = expressions_dict['happy']
-    x = def_coeff[np.where(labels_expr == 'neutral')]
-    x = x[0:69]
-
-    clf.fit(x,y)
-
-    print(clf.predict(x[0].reshape(1, -1)))
-    print(y[0])
-
+        print("")
