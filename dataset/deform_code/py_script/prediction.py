@@ -116,19 +116,13 @@ def regressor(expr, tec, kernel = "rbf"):
 
     elif tec == "svr":
 
-        c_array = np.geomspace(1.0, 1000.0, 10)
-        gamma_array = np.geomspace(0.1, 1000.0, 100)
-        '''
-        for c in c_array:
-            regr = MultiOutputRegressor(SVR(kernel=kernel, C=c))
-            scores = cross_val_score(regr, X_train, y_train, cv=4)
-            print("For C = ", c, " min: ", min(scores), " max: ", max(scores), " mean: ", np.mean(scores),
-                  " variance: ", np.var(scores))
-                  '''
+        c_array = np.geomspace(200.0, 300.0, 10)
+        gamma_array = np.geomspace(0.1, 1000.0, 10)
 
+        '''
         kfold = KFold(n_splits=4, random_state=None, shuffle=True)
-        for c in gamma_array:
-            regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=c))
+        for c in c_array:
+            regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=0.1, C = 200))
             scores = []
             scores = np.array(scores)
 
@@ -141,11 +135,8 @@ def regressor(expr, tec, kernel = "rbf"):
 
             print("For C = ", c, " min: ", min(scores), " max: ", max(scores), " mean: ", np.mean(scores),
                   " variance: ", np.var(scores))
-
-
-
-
-
+        '''
+        regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=0.1, C=200))
         regr.fit(X_train, y_train)
 
     # Predict on the test data: y_pred
