@@ -5,7 +5,7 @@ from py_script import prediction
 
 
 expr = "happy"
-regr_svr_poly = prediction.regressor(expr, "svr", "poly")
+regr_svr_poly = prediction.regressor(expr, "svr", "rbf")
 
 
 input()

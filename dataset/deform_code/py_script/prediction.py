@@ -116,7 +116,8 @@ def regressor(expr, tec, kernel = "rbf"):
 
     elif tec == "svr":
 
-        c_array = np.geomspace(1.0, 1000.0, 100)
+        c_array = np.geomspace(1.0, 1000.0, 10)
+        gamma_array = np.geomspace(0.1, 1000.0, 100)
         '''
         for c in c_array:
             regr = MultiOutputRegressor(SVR(kernel=kernel, C=c))
@@ -125,9 +126,9 @@ def regressor(expr, tec, kernel = "rbf"):
                   " variance: ", np.var(scores))
                   '''
 
-        kfold = KFold(n_splits=6, random_state=21, shuffle=True)
-        for c in c_array:
-            regr = MultiOutputRegressor(SVR(kernel=kernel, C=c))
+        kfold = KFold(n_splits=4, random_state=None, shuffle=True)
+        for c in gamma_array:
+            regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=c))
             scores = []
             scores = np.array(scores)
 
