@@ -1,4 +1,4 @@
-function done = deform_and_visualize(def_neutral, def_v1, expr, tec, filename, index_texture)
+function done = deform_and_visualize_one(def_v, expr, tec, path, filename, index_texture)
     
     figure1 = figure;
     
@@ -11,21 +11,22 @@ function done = deform_and_visualize(def_neutral, def_v1, expr, tec, filename, i
         addpath(genpath('toolbox_graph/'))
     end
     
-
-    defNeutral = deform_3D_shape_fast(avgModel',Components, def_neutral');
-    
     texture = colors_all(:,:,index_texture); 
     options.face_vertex_color = texture;
 
-    subplot(1,2,1)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v1');
-    plot_mesh(defNeutral,compute_delaunay(defNeutral), options);
-    title('neutral model')
 
-    subplot(1,2,2)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v1');
+    defShape = deform_3D_shape_fast(avgModel',Components, def_v');
+    x0=10;
+    y0=10;
+    width=550;
+    height=600;
+    set(figure1,'units','points','position',[x0,y0,width,height])
     plot_mesh(defShape,compute_delaunay(defShape), options);
-    title('neutral model')
+    title(strcat(expr, " model ", tec))
+
+    mkdir(path)
+
+    saveas(figure1, strcat(path, "/", filename));
 
     done = 'done';
 end

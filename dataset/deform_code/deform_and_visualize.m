@@ -11,7 +11,6 @@ function done = deform_and_visualize(def_neutral, def_v2, def_v3, def_v4, def_v5
         addpath(genpath('toolbox_graph/'))
     end
 
-    
     texture = colors_all(:,:,index_texture); 
     options.face_vertex_color = texture;
 

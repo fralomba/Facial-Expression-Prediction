@@ -9,13 +9,13 @@ import keras.optimizers
 from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split, cross_val_score, KFold, GridSearchCV
 from sklearn.svm import SVR
 from sklearn.multioutput import MultiOutputRegressor
 
 def load_data():
-    # neutral, disgust, surprise, angry, sadness, fear, contempt, happy
+
     mat = h5py.File('data/processed_ck.mat')
 
     # Transformation Matrix (neutral, expression, neutral, expression)
@@ -28,30 +28,26 @@ def load_data():
         for row_number in range(len(column)):
             labels_expr.append(''.join(map(chr, f[column[row_number]][:])))
 
-    # Expression labels
     labels_expr = np.asarray(labels_expr)
 
-    labels_id = np.array(mat["labels_id"][0])
-
-    different_expr = np.sort(np.unique(labels_expr))
-
-    # Computing expressions matrix
+    # Computing expressions and dataset dictionary
     expressions_dict = {}
     dataset_dict = {}
 
     for i in range(1, def_coeff.shape[0], 2):
-        #Computing difference for each expression
+
         neutral = def_coeff[i - 1, :]
         expr = def_coeff[i, :]
         expr = np.matrix(expr)
         neutral = np.matrix(neutral)
         label = labels_expr[i]
+
         if label in expressions_dict:
             expressions_dict[label] = np.append(expressions_dict[label], expr, axis=0)
         else:
             expressions_dict[label] = expr
 
-        #Computing dataset for learning for each expression
+        #Computing dataset for machine learning for each expression
         if label in dataset_dict:
             dataset_dict[label]["input"] = np.append(dataset_dict[label]["input"], neutral, axis=0)
             dataset_dict[label]["output"] = np.append(dataset_dict[label]["output"], expr, axis=0)
@@ -60,16 +56,21 @@ def load_data():
 
     return expressions_dict, dataset_dict
 
+# This method computes mean/median/mode of a particular expression to predict the related transformation
 def m_prediction(expr = 'happy', technique = 'mean', bandwidth = None):
 
     expressions_dict, dataset_dict = load_data()
 
     if technique == 'median':
-        # Computing medians
+        # Computing median
         return np.median(expressions_dict[expr], axis=0)
 
     elif technique == 'mode':
+        # Computing mode
         if bandwidth != None:
+
+            # If bandwidth is specified, return the centroid with max density
+
             delta = expressions_dict[expr]
 
             bandwidth = estimate_bandwidth(delta)
@@ -96,7 +97,7 @@ def m_prediction(expr = 'happy', technique = 'mean', bandwidth = None):
 
             return cluster_centers[0]
 
-        # Computing modes
+        # If bandwidth is not specified, repeat until there is only a centroid, and return it
         n_clusters_ = 0
         quantile = 0.3
         while n_clusters_ != 1:
@@ -114,17 +115,18 @@ def m_prediction(expr = 'happy', technique = 'mean', bandwidth = None):
 
         return cluster_centers[0]
     else:
-        # Computing means
+        # Computing mean
         return np.mean(expressions_dict[expr], axis=0)
 
+# This method return a Neural Network Regressor for a particular expression to predict the related transformation
 def neural_network(expr = "happy", learning_rate = 0.01):
 
-    #network model definition
+    # Create neural network model
     model = Sequential()
 
     model.add(Dense(units=300, activation='relu', input_dim=300))
 
-    model.add(Dense(units=500, activation='tanh')) #hidden layer
+    model.add(Dense(units=512, activation='tanh')) #hidden layer
 
     model.add(Dense(units=300, activation='relu'))
 
@@ -133,7 +135,7 @@ def neural_network(expr = "happy", learning_rate = 0.01):
 
     model.compile(optimizer = optimizer, loss = 'mse', metrics = [R_metric])
 
-    #load and split data
+    # Load and split data
     expressions_dict, dataset_dict = load_data()
 
     X = dataset_dict[expr]["input"]
@@ -141,9 +143,14 @@ def neural_network(expr = "happy", learning_rate = 0.01):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    model.fit(X_train,y_train, epochs = 20)
+    model.fit(X_train,y_train, epochs = 20, verbose = 0)
 
-    pred_test = model.predict(X_test)
+    y_pred = model.predict(X_test)
+    # Compute and print R^2 and RMSE
+    rmse = np.sqrt(mean_squared_error(y_pred, y_test))
+    print("Accuracy and error for neural network: ")
+    print("R^2: {}".format(r2_score(y_test, y_pred)))
+    print("Root Mean Squared Error: {}".format(rmse))
 
     return model
 
@@ -152,7 +159,9 @@ def R_metric(y_true, y_pred):
     SS_tot = backend.sum(backend.square( y_true - backend.mean(y_true) ) )
     return ( 1 - SS_res/(SS_tot + backend.epsilon()) )
 
-def regressor(expr, tec, kernel = "rbf", cv_test = False, cv_array = 10):
+# This method return a Linear/SVR Regressor for a particular expression to predict the related transformation
+def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10):
+    # Load and split data
     expressions_dict, dataset_dict = load_data()
 
     X = dataset_dict[expr]["input"]
@@ -161,16 +170,16 @@ def regressor(expr, tec, kernel = "rbf", cv_test = False, cv_array = 10):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
     if tec == "linear":
-
+        # Create Linear Regressor
         regr = LinearRegression()
         regr.fit(X_train, y_train)
 
     elif tec == "svr":
-
+        # Create SVR Regressos
         best_parameters = {"C": 200, "gamma": 0.1, "score": -10000}
 
         if(cv_test):
-            # Handrcafted cross validation for parameters C and gamma
+            # If cv_test = True, making handcrafted cross validation for parameters C and gamma (it can take a while)
             print("Starting cross validation ...")
             c_array = np.geomspace(100.0, 300.0, cv_array)
             gamma_array = np.geomspace(0.1, 1000.0, cv_array)
@@ -196,14 +205,16 @@ def regressor(expr, tec, kernel = "rbf", cv_test = False, cv_array = 10):
 
             print("For expr ", expr, " best parameters are ", best_parameters)
 
+        # Create a MultiOutputRegressor SVR
         regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=best_parameters["gamma"], C=best_parameters["C"]))
         regr.fit(X_train, y_train)
 
-    # Predict on the test data: y_pred
     y_pred = regr.predict(X_test)
 
     # Compute and print R^2 and RMSE
     rmse = np.sqrt(mean_squared_error(y_pred, y_test))
+    print("Accuracy and error for ", tec ," regression: ")
+    print("Accuracy and error for neural network: ")
     print("R^2: {}".format(regr.score(X_test, y_test)))
     print("Root Mean Squared Error: {}".format(rmse))
 
@@ -211,7 +222,7 @@ def regressor(expr, tec, kernel = "rbf", cv_test = False, cv_array = 10):
 
 if __name__ == '__main__':
 
-    #Mean Shift Study
+    # Mean Shift Study
 
     mat = h5py.File('../data/processed_ck.mat')
 
@@ -251,8 +262,6 @@ if __name__ == '__main__':
 
     radius = []
     radius = np.array(radius)
-
-
 
     for expr in different_expr:
         expressions_dict[expr] = def_coeff[np.where(labels_expr == expr)]
