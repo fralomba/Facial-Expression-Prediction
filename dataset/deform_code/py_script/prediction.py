@@ -3,6 +3,7 @@ import numpy as np
 
 from keras.models import Sequential
 from keras.layers import Dense
+from keras import backend
 import keras.optimizers
 
 from sklearn.cluster import MeanShift, estimate_bandwidth
@@ -116,21 +117,21 @@ def m_prediction(expr = 'happy', technique = 'mean', bandwidth = None):
         # Computing means
         return np.mean(expressions_dict[expr], axis=0)
 
-def neural_network(expr = "happy"):
+def neural_network(expr = "happy", learning_rate = 0.01):
 
     #network model definition
     model = Sequential()
 
     model.add(Dense(units=300, activation='relu', input_dim=300))
 
-    model.add(Dense(units=500, activation='tanh'))      #hidden layer
+    model.add(Dense(units=500, activation='tanh')) #hidden layer
 
     model.add(Dense(units=300, activation='relu'))
 
-    learning_rate = 0.01
-    optimizer = keras.optimizers.Adam(lr=learning_rate)
+    learning_rate = learning_rate
+    optimizer = keras.optimizers.Adam(lr = learning_rate)
 
-    model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
+    model.compile(optimizer = optimizer, loss = 'mse', metrics = [R_metric])
 
     #load and split data
     expressions_dict, dataset_dict = load_data()
@@ -140,12 +141,16 @@ def neural_network(expr = "happy"):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-    model.fit(X_train,y_train, epochs=20)
+    model.fit(X_train,y_train, epochs = 20)
 
     pred_test = model.predict(X_test)
-    print(pred_test)
 
     return model
+
+def R_metric(y_true, y_pred):
+    SS_res =  backend.sum(backend.square( y_true-y_pred ))
+    SS_tot = backend.sum(backend.square( y_true - backend.mean(y_true) ) )
+    return ( 1 - SS_res/(SS_tot + backend.epsilon()) )
 
 def regressor(expr, tec, kernel = "rbf", cv_test = False, cv_array = 10):
     expressions_dict, dataset_dict = load_data()

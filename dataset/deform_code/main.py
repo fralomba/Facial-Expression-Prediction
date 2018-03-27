@@ -29,7 +29,7 @@ def_neutral = def_coeff[labels_expr == 'neutral']
 expressions = ["disgust", "surprise", "angry", "sadness", "fear", "contempt", "happy"]
 expr = "angry"
 technique = "mean"
-n_examples = 1
+n_examples = 5
 alpha = 1
 kernels = ["poly", "rbf", "sigmoid"]
 
@@ -39,25 +39,28 @@ kernels = ["poly", "rbf", "sigmoid"]
 
 indexes = np.random.randint(0, high = len(def_neutral), size = n_examples+1)
 
-for expr in expressions:
+for i in range(0, n_examples):
 
-    print("Expression: ", expr)
-    regr_lin = prediction.regressor(expr, "linear")
-    regr_svr_sig = prediction.regressor(expr, "svr", "sigmoid")
-    pred_vector = prediction.m_prediction(expr, technique)
+    for expr in expressions:
 
-    for i in range(0, n_examples):
+        print("Expression: ", expr)
+        regr_lin = prediction.regressor(expr, "linear")
+        regr_svr_sig = prediction.regressor(expr, "svr", "sigmoid")
+        pred_vector = prediction.m_prediction(expr, technique)
+        regr_nn = prediction.neural_network(expr)
 
         def_neutral_v = def_neutral[indexes[i]]
 
-        def_v2 = def_neutral_v + pred_vector * alpha
+        def_v2 = def_neutral_v + pred_vector + alpha
 
         def_v3 = def_neutral_v + regr_lin.predict(def_neutral_v.reshape(1, -1)) * alpha
 
         def_v4 = def_neutral_v + regr_svr_sig.predict(def_neutral_v.reshape(1, -1)) * alpha
 
+        def_v5 = def_neutral_v + regr_nn.predict(def_neutral_v.reshape(1, -1)) * (alpha + 0.5)
+
         eng.deform_and_visualize(matlab.double(def_neutral_v.tolist()), matlab.double(def_v2.tolist()),
-                                 matlab.double(def_v3.tolist()), matlab.double(def_v4.tolist()),
+                                 matlab.double(def_v3.tolist()), matlab.double(def_v4.tolist()), matlab.double(def_v5.tolist()),
                                  expr, technique, "results/" + expr + "_" + technique + "_" + str(i) + ".jpg", int(indexes[i]))
 
 
