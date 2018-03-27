@@ -11,11 +11,15 @@ if ~exist('def_coeff','var')
 end
 
 % Params
+
+
 use_avgModel = false;
 render_texture = true;
-index_shape = 351;
+index_shape = 3;
 index_texture = index_shape;
 index_coeff = index_shape + 1;
+
+
 
 % Select an arbitrary coefficients vector.
 % The coefficients are pre-computed by fitting the average model on a 2D
@@ -58,4 +62,5 @@ title('Base Model')
 subplot(1,2,2)
 plot_mesh(defShape,compute_delaunay(defShape),options);
 title('Deformed Model')
+
 

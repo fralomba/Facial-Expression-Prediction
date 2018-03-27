@@ -10,25 +10,23 @@ function done = deform_and_visualize(def_neutral, def_v2, def_v3, def_v4, expr, 
         addpath(genpath('toolbox_general/'))
         addpath(genpath('toolbox_graph/'))
     end
-    
 
-    defNeutral = deform_3D_shape_fast(avgModel',Components, def_neutral');
     
     texture = colors_all(:,:,index_texture); 
     options.face_vertex_color = texture;
 
     subplot(1,4,1)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v2');
+    defNeutral = deform_3D_shape_fast(avgModel',Components, def_neutral');
     plot_mesh(defNeutral,compute_delaunay(defNeutral), options);
     title('neutral model')
 
     subplot(1,4,2)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v3');
+    defShape = deform_3D_shape_fast(avgModel',Components, def_v2');
     plot_mesh(defShape,compute_delaunay(defShape), options);
     title(strcat(expr, " model with mean"))
 
     subplot(1,4,3)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v4');
+    defShape = deform_3D_shape_fast(avgModel',Components, def_v3');
     plot_mesh(defShape,compute_delaunay(defShape), options);
     title(strcat(expr, " model with linear regression"))
 
