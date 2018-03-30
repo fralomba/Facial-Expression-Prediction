@@ -57,15 +57,15 @@ def load_data():
     return expressions_dict, dataset_dict
 
 # This method computes mean/median/mode of a particular expression to predict the related transformation
-def m_prediction(expr = 'happy', technique = 'mean', bandwidth = None):
+def m_prediction(expr = 'happy', tec ='mean', bandwidth = None):
 
     expressions_dict, dataset_dict = load_data()
 
-    if technique == 'median':
+    if tec == 'median':
         # Computing median
         return np.median(expressions_dict[expr], axis=0)
 
-    elif technique == 'mode':
+    elif tec == 'mode':
         # Computing mode
         if bandwidth != None:
 
@@ -154,13 +154,8 @@ def neural_network(expr = "happy", learning_rate = 0.01):
 
     return model
 
-def R_metric(y_true, y_pred):
-    SS_res =  backend.sum(backend.square( y_true-y_pred ))
-    SS_tot = backend.sum(backend.square( y_true - backend.mean(y_true) ) )
-    return ( 1 - SS_res/(SS_tot + backend.epsilon()) )
-
 # This method return a Linear/SVR Regressor for a particular expression to predict the related transformation
-def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10):
+def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10, learning_rate = 0.01):
     # Load and split data
     expressions_dict, dataset_dict = load_data()
 
@@ -169,6 +164,7 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
+    print("Training the regressor for expression ", expr ,"...")
     if tec == "linear":
         # Create Linear Regressor
         regr = LinearRegression()
@@ -176,7 +172,7 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10)
 
     elif tec == "svr":
         # Create SVR Regressos
-        best_parameters = {"C": 200, "gamma": 0.1, "score": -10000}
+        best_parameters = {"C": 200, "gamma": 0.1, "score": -10000, "n_split": 4}
 
         if(cv_test):
             # If cv_test = True, making handcrafted cross validation for parameters C and gamma (it can take a while)
@@ -184,41 +180,125 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10)
             c_array = np.geomspace(100.0, 300.0, cv_array)
             gamma_array = np.geomspace(0.1, 1000.0, cv_array)
 
-            kfold = KFold(n_splits=4, random_state = None, shuffle=True)
+            for split in range(2,12,2):
+                scores = []
+                scores = np.array(scores)
+                kfold = KFold(n_splits=split, random_state = None, shuffle=True)
+                for train_index, test_index in kfold.split(X):
+                    regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=200, C=1))
+                    kf_x_train, kf_x_test = X[train_index], X[test_index]
+                    kf_y_train, kf_y_test = y[train_index], y[test_index]
+                    regr.fit(kf_x_train, kf_y_train)
+                    kf_y_pred = regr.predict(kf_x_test)
+                    scores = np.append(scores, r2_score(kf_y_test, kf_y_pred))
+
+                if best_parameters["score"] < np.mean(scores):
+                    best_parameters["score"] = np.mean(scores)
+                    best_parameters["n_split"] = split
+
+                print("CV mean score for ", split ," splits: ", np.mean(scores))
+
+            kfold = KFold(n_splits=split, random_state=None, shuffle=True)
 
             for c in c_array:
                 for gamma in gamma_array:
-                    regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=gamma, C = c))
                     scores = []
                     scores = np.array(scores)
 
-                    for train_index, test_index in kfold.split(X_train):
-                        kf_x_train, kf_x_test = X_train[train_index], X_train[test_index]
-                        kf_y_train, kf_y_test = y_train[train_index], y_train[test_index]
+                    for train_index, test_index in kfold.split(X):
+                        regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=gamma, C=c))
+                        kf_x_train, kf_x_test = X[train_index], X[test_index]
+                        kf_y_train, kf_y_test = y[train_index], y[test_index]
                         regr.fit(kf_x_train, kf_y_train)
-                        #regr.predict(kf_x_test)
-                        scores = np.append(scores, regr.score(kf_x_test, kf_y_test))
-                        if max(scores) > best_parameters["score"]:
-                            best_parameters["score"] = max(scores)
-                            best_parameters["C"] = c
-                            best_parameters["gamma"] = gamma
+                        kf_y_pred = regr.predict(kf_x_test)
+                        scores = np.append(scores, r2_score(kf_y_test, kf_y_pred))
+
+                    if np.mean(scores) > best_parameters["score"]:
+                        best_parameters["score"] = np.mean(scores)
+                        best_parameters["C"] = c
+                        best_parameters["gamma"] = gamma
+
 
             print("For expr ", expr, " best parameters are ", best_parameters)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/best_parameters["n_split"], random_state=42)
 
         # Create a MultiOutputRegressor SVR
+
         regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=best_parameters["gamma"], C=best_parameters["C"]))
         regr.fit(X_train, y_train)
 
+    elif tec == "nn":
+
+        best_parameters = {"n_split": 4, "score": -1000}
+
+        if(cv_test):
+
+            for split in range(2,12,2):
+                scores = []
+                scores = np.array(scores)
+                kfold = KFold(n_splits=split, random_state = None, shuffle=True)
+                for train_index, test_index in kfold.split(X):
+                    regr = create_network(learning_rate)
+                    kf_x_train, kf_x_test = X[train_index], X[test_index]
+                    kf_y_train, kf_y_test = y[train_index], y[test_index]
+                    regr.fit(kf_x_train, kf_y_train, epochs=20, verbose=0)
+                    kf_y_pred = regr.predict(kf_x_test)
+                    scores = np.append(scores, r2_score(kf_y_test, kf_y_pred))
+
+                if best_parameters["score"] < np.mean(scores):
+                    best_parameters["score"] = np.mean(scores)
+                    best_parameters["n_split"] = split
+
+                print("CV mean score for ", split ," splits: ", np.mean(scores))
+                print("CV variance score for ", split, " splits: ", np.var(scores))
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1 / best_parameters["n_split"],
+                                                                    random_state=42)
+
+        regr = create_network(learning_rate)
+
+        regr.fit(X_train, y_train, epochs = 20, verbose=0)
+
+    print("Regressor trained!")
+    # Compute and print R^2 and RMSE
     y_pred = regr.predict(X_test)
 
-    # Compute and print R^2 and RMSE
+    print("")
+    errors_v = []
+    errors_v = np.array(errors_v)
+    for (index, y_pred_v) in enumerate(y_pred):
+        errors_v = np.append(errors_v, np.sqrt(mean_squared_error(y_pred_v.reshape(1,-1), y_test[index])))
+
+    print("Mean mean squared errors: ", np.mean(errors_v))
+    print("Variance mean quared errors: ", np.var(errors_v))
     rmse = np.sqrt(mean_squared_error(y_pred, y_test))
     print("Accuracy and error for ", tec ," regression: ")
-    print("Accuracy and error for neural network: ")
-    print("R^2: {}".format(regr.score(X_test, y_test)))
+    print("R^2: {}".format(r2_score(y_test, y_pred)))
     print("Root Mean Squared Error: {}".format(rmse))
+    print("")
 
     return regr
+
+def create_network(learning_rate):
+    # Create neural network model
+    regr = Sequential()
+
+    regr.add(Dense(units=300, activation='relu', input_dim=300))
+
+    regr.add(Dense(units=512, activation='tanh'))  # hidden layer
+
+    regr.add(Dense(units=300, activation='relu'))
+
+    learning_rate = learning_rate
+    optimizer = keras.optimizers.Adam(lr=learning_rate)
+
+    regr.compile(optimizer=optimizer, loss='mse', metrics=[R_metric])
+
+    return regr
+
+def R_metric(y_true, y_pred):
+    SS_res =  backend.sum(backend.square( y_true-y_pred ))
+    SS_tot = backend.sum(backend.square( y_true - backend.mean(y_true) ) )
+    return ( 1 - SS_res/(SS_tot + backend.epsilon()) )
 
 if __name__ == '__main__':
 
