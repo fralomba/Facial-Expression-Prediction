@@ -57,7 +57,7 @@ function done = deform_and_visualize(def_neutral, def_vs1, def_vs2, def_v2, def_
 
     mkdir(char(strcat("results/", expr)));
 
-    %saveas(figure1, strcat("results/", expr, "/", filename));
+    saveas(figure1, strcat("results/", expr, "/", filename));
 
     done = 'done';
 end
