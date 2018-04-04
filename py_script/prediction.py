@@ -258,7 +258,7 @@ def create_network(learning_rate):
     learning_rate = learning_rate
     optimizer = keras.optimizers.Adam(lr=learning_rate)
 
-    regr.compile(optimizer=optimizer, loss='mse')
+    regr.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
 
     return regr
 
