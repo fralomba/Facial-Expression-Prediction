@@ -15,7 +15,7 @@ end
 
 use_avgModel = false;
 render_texture = true;
-index_shape = 3;
+index_shape = 247;
 index_texture = index_shape;
 index_coeff = index_shape + 1;
 

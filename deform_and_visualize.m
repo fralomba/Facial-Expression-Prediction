@@ -1,4 +1,4 @@
-function done = deform_and_visualize(def_neutral, def_vs, def_v2, def_v3, def_v4, def_v5, expr, tec, filename, index_texture)
+function done = deform_and_visualize_final(def_neutral, def_v, expr, tec, index_texture)
     
     figure1 = figure;
     
@@ -10,47 +10,29 @@ function done = deform_and_visualize(def_neutral, def_vs, def_v2, def_v3, def_v4
         addpath(genpath('toolbox_general/'))
         addpath(genpath('toolbox_graph/'))
     end
-
+    
     texture = colors_all(:,:,index_texture); 
     options.face_vertex_color = texture;
 
     x0=10;
     y0=10;
-    width=1500;
-    height=400;
-    set(figure1,'units','points','position',[100,800,width,height])
+    width=550;
+    height=600;
 
-    subplot(1,6,1)
-    defNeutral = deform_3D_shape_fast(avgModel',Components, def_neutral');
-    plot_mesh(defNeutral,compute_delaunay(defNeutral), options);
-    title(strcat(expr, " model with mean"))
-
-    subplot(1,6,2)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_vs');
+    subplot(1,2,1)
+    defShape = deform_3D_shape_fast(avgModel',Components, def_neutral');
+    set(figure1,'units','points','position',[x0,y0,width,height])
     plot_mesh(defShape,compute_delaunay(defShape), options);
-    title(strcat(expr, " model with median"))
+    title(strcat("neutral model ", tec))
 
-    subplot(1,6,3)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v2');
+    subplot(1,2,2)
+    defShape = deform_3D_shape_fast(avgModel',Components, def_v');
     plot_mesh(defShape,compute_delaunay(defShape), options);
-    title(strcat(expr, " model with mode"))
+    title(strcat(expr, " model ", tec))
 
-    subplot(1,6,4)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v3');
-    plot_mesh(defShape,compute_delaunay(defShape), options);
-    title(strcat(expr, " model with linear regression"))
+    %mkdir(path)
 
-    subplot(1,6,5)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v4');
-    plot_mesh(defShape,compute_delaunay(defShape), options);
-    title(strcat(expr, " model with svr regression"))
-
-    subplot(1,6,6)
-    defShape = deform_3D_shape_fast(avgModel',Components, def_v5');
-    plot_mesh(defShape,compute_delaunay(defShape), options);
-    title(strcat(expr, " model with NN regression"))
-
-    %saveas(figure1,filename);
+    %saveas(figure1, strcat(path, "/", filename));
 
     done = 'done';
 end

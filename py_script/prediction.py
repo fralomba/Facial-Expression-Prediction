@@ -3,16 +3,16 @@ import numpy as np
 
 from keras.models import Sequential
 from keras.layers import Dense
-from keras import backend
 import keras.optimizers
 
 from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split, cross_val_score, KFold, GridSearchCV
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.svm import SVR
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn import datasets
 
 def load_data():
 
@@ -72,8 +72,6 @@ def m_prediction(expr = 'happy', tec ='mean', bandwidth = None):
             # If bandwidth is specified, return the centroid with max density
 
             delta = expressions_dict[expr]
-
-            bandwidth = estimate_bandwidth(delta)
             ms = MeanShift(bandwidth)
             ms.fit(delta)
             labels = ms.labels_
@@ -118,43 +116,8 @@ def m_prediction(expr = 'happy', tec ='mean', bandwidth = None):
         # Computing mean
         return np.mean(expressions_dict[expr], axis=0)
 
-# This method return a Neural Network Regressor for a particular expression to predict the related transformation
-def neural_network(expr = "happy", learning_rate = 0.01):
-
-    # Create neural network model
-    model = Sequential()
-
-    model.add(Dense(units=300, activation='relu', input_dim=300))
-
-    model.add(Dense(units=512, activation='tanh')) #hidden layer
-
-    model.add(Dense(units=300, activation='relu'))
-
-    learning_rate = learning_rate
-    optimizer = keras.optimizers.Adam(lr = learning_rate)
-
-    model.compile(optimizer = optimizer, loss = 'mse', metrics = [R_metric])
-
-    # Load and split data
-    expressions_dict, dataset_dict = load_data()
-
-    X = dataset_dict[expr]["input"]
-    y = dataset_dict[expr]["output"]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-    model.fit(X_train,y_train, epochs = 20, verbose = 0)
-
-    y_pred = model.predict(X_test)
-    # Compute and print R^2 and RMSE
-    rmse = np.sqrt(mean_squared_error(y_pred, y_test))
-    print("Accuracy and error for neural network: ")
-    print("R^2: {}".format(r2_score(y_test, y_pred)))
-    print("Root Mean Squared Error: {}".format(rmse))
-
-    return model
-
-# This method return a Linear/SVR Regressor for a particular expression to predict the related transformation
+# This method return a Linear/SVR/Neural Network Regressor for a particular expression
+# to predict the related transformation
 def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10, learning_rate = 0.01):
     # Load and split data
     expressions_dict, dataset_dict = load_data()
@@ -164,7 +127,8 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
 
-    print("Training the regressor for expression ", expr ,"...")
+    print("")
+    print("Training the " + tec + " regressor for expression ", expr ,"...")
     if tec == "linear":
         # Create Linear Regressor
         regr = LinearRegression()
@@ -180,6 +144,7 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
             c_array = np.geomspace(100.0, 300.0, cv_array)
             gamma_array = np.geomspace(0.1, 1000.0, cv_array)
 
+            # Validate the best number of splits
             for split in range(2,12,2):
                 scores = []
                 scores = np.array(scores)
@@ -198,8 +163,9 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
 
                 print("CV mean score for ", split ," splits: ", np.mean(scores))
 
-            kfold = KFold(n_splits=split, random_state=None, shuffle=True)
+            kfold = KFold(n_splits = best_parameters["n_split"], random_state=None, shuffle=True)
 
+            # Validate the best c and gamma parameters
             for c in c_array:
                 for gamma in gamma_array:
                     scores = []
@@ -223,7 +189,6 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/best_parameters["n_split"], random_state=42)
 
         # Create a MultiOutputRegressor SVR
-
         regr = MultiOutputRegressor(SVR(kernel=kernel, gamma=best_parameters["gamma"], C=best_parameters["C"]))
         regr.fit(X_train, y_train)
 
@@ -233,6 +198,7 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
 
         if(cv_test):
 
+            # Validate the best number of splits
             for split in range(2,12,2):
                 scores = []
                 scores = np.array(scores)
@@ -251,15 +217,16 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
 
                 print("CV mean score for ", split ," splits: ", np.mean(scores))
                 print("CV variance score for ", split, " splits: ", np.var(scores))
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1 / best_parameters["n_split"],
-                                                                    random_state=42)
+
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 1 / best_parameters["n_split"],
+                                                                    random_state = 42)
 
         regr = create_network(learning_rate)
 
         regr.fit(X_train, y_train, epochs = 20, verbose=0)
 
     print("Regressor trained!")
-    # Compute and print R^2 and RMSE
+    # Compute and print RMSE
     y_pred = regr.predict(X_test)
 
     print("")
@@ -268,11 +235,11 @@ def regressor(expr, tec = "svr", kernel = "rbf", cv_test = False, cv_array = 10,
     for (index, y_pred_v) in enumerate(y_pred):
         errors_v = np.append(errors_v, np.sqrt(mean_squared_error(y_pred_v.reshape(1,-1), y_test[index])))
 
+    print("Accuracy and error for ", tec, " regression: ")
     print("Mean mean squared errors: ", np.mean(errors_v))
     print("Variance mean quared errors: ", np.var(errors_v))
+
     rmse = np.sqrt(mean_squared_error(y_pred, y_test))
-    print("Accuracy and error for ", tec ," regression: ")
-    print("R^2: {}".format(r2_score(y_test, y_pred)))
     print("Root Mean Squared Error: {}".format(rmse))
     print("")
 
@@ -291,14 +258,9 @@ def create_network(learning_rate):
     learning_rate = learning_rate
     optimizer = keras.optimizers.Adam(lr=learning_rate)
 
-    regr.compile(optimizer=optimizer, loss='mse', metrics=[R_metric])
+    regr.compile(optimizer=optimizer, loss='mse')
 
     return regr
-
-def R_metric(y_true, y_pred):
-    SS_res =  backend.sum(backend.square( y_true-y_pred ))
-    SS_tot = backend.sum(backend.square( y_true - backend.mean(y_true) ) )
-    return ( 1 - SS_res/(SS_tot + backend.epsilon()) )
 
 if __name__ == '__main__':
 
@@ -354,17 +316,16 @@ if __name__ == '__main__':
 
         delta = expressions_dict[expr]
 
-        while n_clusters_ > 2:
-            bandwidth = estimate_bandwidth(delta, quantile=quantile)
-            ms = MeanShift(bandwidth=bandwidth)
-            ms.fit(delta)
-            labels = ms.labels_
-            cluster_centers = ms.cluster_centers_
+        bandwidth = estimate_bandwidth(delta, quantile=quantile)
+        ms = MeanShift(bandwidth=bandwidth)
+        ms.fit(delta)
+        labels = ms.labels_
+        cluster_centers = ms.cluster_centers_
 
-            labels_unique = np.unique(labels)
-            n_clusters_ = len(labels_unique)
-            quantile += 0.05
-            print("In radius ", bandwidth, " we get ", n_clusters_, " centroids")
+        labels_unique = np.unique(labels)
+        n_clusters_ = len(labels_unique)
+
+        print("In radius ", bandwidth, " we get ", n_clusters_, " centroids")
 
         if(len(cluster_centers) > 1):
 
