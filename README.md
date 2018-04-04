@@ -19,6 +19,7 @@ In order to strengthen the results, different techniques have been used:
 
 ## Results
 Application example
+
 ![Application example](/results/happy/happy_face_49_alpha_10.jpg)
 
 ## Requirements
@@ -32,4 +33,4 @@ Application example
 | **h5py** (Python Package)                        		   |Tested on v0.19.1|    Yes   |
 
 
- * the installation procedure for Matlab engine for Python is available [here](https://it.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html)
+ *the installation procedure for Matlab engine for Python is available [here](https://it.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html)
