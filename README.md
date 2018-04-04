@@ -18,10 +18,10 @@ In order to strengthen the results, different techniques have been used:
 	* Neural Network
 
 ## Requirements
-		| Software                                                 | Version         | Required |
-		| ---------------------------------------------------------|-----------------| ---------|
-		| **Python**                                               |     >= 3        |    Yes   |
-		| **MATLAB**                                               |    >= R2017b    |    Yes   |
-		| **Numpy** (Python Package)                               |Tested on v1.13.3|    Yes   |
-		| **Scikit-learn** (Python Package)                        |Tested on v0.19.1|    Yes   |
-		| **h5py** (Python Package)                        		   |Tested on v0.19.1|    Yes   |
+	| Software                                                 | Version         | Required |
+	| ---------------------------------------------------------|-----------------| ---------|
+	| **Python**                                               |     >= 3        |    Yes   |
+	| **MATLAB**                                               |    >= R2017b    |    Yes   |
+	| **Numpy** (Python Package)                               |Tested on v1.13.3|    Yes   |
+	| **Scikit-learn** (Python Package)                        |Tested on v0.19.1|    Yes   |
+	| **h5py** (Python Package)                        |Tested on v0.19.1|    Yes   |
