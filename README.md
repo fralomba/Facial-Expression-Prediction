@@ -12,10 +12,10 @@ This project aims to predict different facial expressions given a neutral model,
 
 ## Implementation
 In order to strengthen the results, different techniques have been used:
-	* Mean, median, mode
-	* Linear regression
-	* Support Vector Regression (SVR)
-	* Neural Network
+* Mean, median, mode
+* Linear regression
+* Support Vector Regression (SVR)
+* Neural Network
 
 ## Requirements
 | Software                                                 | Version         | Required |
